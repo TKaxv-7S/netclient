@@ -11,8 +11,6 @@ import {
 } from "../store/NetworkContext";
 import {
   GoGetRecentServerNames,
-  GoJoinNetworkByBasicAuth,
-  GoJoinNetworkBySso,
 } from "../../wailsjs/go/main/App";
 import { notifyUser } from "../utils/messaging";
 import { AppRoutes } from "../routes";
@@ -80,14 +78,14 @@ export default function UsernameLogin() {
 
     setIsConnecting(true);
     try {
-      await GoJoinNetworkBySso(serverName, networkName);
+      // await GoJoinNetworkBySso(serverName, networkName);
 
-      const data: NetworksContextDispatcherProps = {
-        action: "refresh-networks",
-      };
-      networksDispatch(data);
+      // const data: NetworksContextDispatcherProps = {
+      //   action: "refresh-networks",
+      // };
+      // networksDispatch(data);
 
-      navigate(getNetworkDetailsPageUrl(networkName));
+      // navigate(getNetworkDetailsPageUrl(networkName));
     } catch (err) {
       await notifyUser("Failed to login to network\n" + err as string);
       console.error(err);
@@ -108,15 +106,15 @@ export default function UsernameLogin() {
 
     setIsConnecting(true);
     try {
-      await GoJoinNetworkByBasicAuth(serverName, username, networkName, password);
+      // await GoJoinNetworkByBasicAuth(serverName, username, networkName, password);
 
-      const data: NetworksContextDispatcherProps = {
-        action: "refresh-networks",
-      };
-      networksDispatch(data);
+      // const data: NetworksContextDispatcherProps = {
+      //   action: "refresh-networks",
+      // };
+      // networksDispatch(data);
 
-      // navigate(getNetworkDetailsPageUrl(networkName));
-      navigate(AppRoutes.NETWORKS_ROUTE);
+      // // navigate(getNetworkDetailsPageUrl(networkName));
+      // navigate(AppRoutes.NETWORKS_ROUTE);
     } catch (err) {
       await notifyUser("Failed to login to network\n" + err as string);
       console.error(err);

@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import LoopIcon from "@mui/icons-material/Loop";
 import { notifyUser } from "../utils/messaging";
-import { config } from "../../wailsjs/go/models";
+import { main } from "../../wailsjs/go/models";
 import { LoadingButton } from "@mui/lab";
 import { GoGetNetclientConfig } from "../../wailsjs/go/main/App";
 
@@ -17,11 +17,11 @@ export default function SettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [ncSettings, setNcSettings] = useState<Omit<
-    config.NcConfig,
+    main.NcConfig,
     "convertValues"
   > | null>(null);
   const [ncSettingsFormData, setNcSettingsFormData] = useState<Omit<
-    config.NcConfig,
+    main.NcConfig,
     "convertValues"
   > | null>(null);
 
@@ -439,13 +439,13 @@ export default function SettingsPage() {
                 label="Default Interface"
                 value={
                   isEditing
-                    ? ncSettingsFormData?.defautlinterface
-                    : ncSettings?.defautlinterface
+                    ? ncSettingsFormData?.defaultinterface
+                    : ncSettings?.defaultinterface
                 }
                 onChange={(ev) =>
                   setNcSettingsFormData({
                     ...ncSettingsFormData!,
-                    defautlinterface: ev.target.value,
+                    defaultinterface: ev.target.value,
                   })
                 }
               />
@@ -453,7 +453,7 @@ export default function SettingsPage() {
             <Grid item xs={8} md={9}>
               Interfaces:{" "}
               {ncSettings?.interfaces
-                .map((iface) => `${String(iface.address.IP)}`)
+                .map((iface) => `${String(iface.addressString)}`)
                 .join(", ")}
             </Grid>
 
