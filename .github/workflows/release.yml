@@ -33,7 +33,6 @@ jobs:
       - name: fix go mod
         run: |
           go mod edit -replace github.com/gravitl/netmaker=github.com/TKaxv-7S/netmaker@${{ github.event.inputs.version }}
-          go get
           go mod tidy
           git commit -am 'update go.mod for release'
       - name: update release Branch
