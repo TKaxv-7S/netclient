@@ -11,6 +11,9 @@ on:
         type: boolean
         description: Is this a pre-release
 
+env:
+  GOPRIVATE: github.com/TKaxv-7S
+
 jobs:
   release-branch:
     runs-on: ubuntu-latest
@@ -32,7 +35,6 @@ jobs:
           git switch -c release_${{ github.event.inputs.version }}
       - name: fix go mod
         run: |
-          export GOPRIVATE=github.com/TKaxv-7S
           go mod edit -replace github.com/gravitl/netmaker=github.com/TKaxv-7S/netmaker@${{ github.event.inputs.version }}
           go get github.com/gravitl/netmaker@${{ github.event.inputs.version }}
           go mod tidy
@@ -134,6 +136,7 @@ jobs:
           npm ci
           npm run build
           cd ../..
+          go install github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest
           go generate
           go build -tags desktop,production -ldflags "-w -s -H windowsgui"
       - name: upload windows to release
