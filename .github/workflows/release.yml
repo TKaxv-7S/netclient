@@ -32,7 +32,7 @@ jobs:
           git switch -c release_${{ github.event.inputs.version }}
       - name: fix go mod
         run: |
-          mod edit -replace github.com/gravitl/netmaker=github.com/TKaxv-7S/netmaker@${{ github.event.inputs.version }}
+          go mod edit -replace github.com/gravitl/netmaker=github.com/TKaxv-7S/netmaker@${{ github.event.inputs.version }}
           go get
           go mod tidy
           git commit -am 'update go.mod for release'
