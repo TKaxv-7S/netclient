@@ -32,6 +32,7 @@ jobs:
           git switch -c release_${{ github.event.inputs.version }}
       - name: fix go mod
         run: |
+          export GOPRIVATE=github.com/TKaxv-7S
           go mod edit -replace github.com/gravitl/netmaker=github.com/TKaxv-7S/netmaker@${{ github.event.inputs.version }}
           go get github.com/gravitl/netmaker@${{ github.event.inputs.version }}
           go mod tidy
