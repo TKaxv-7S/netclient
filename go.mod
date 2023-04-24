@@ -122,4 +122,4 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 
-replace github.com/gravitl/netmaker => github.com/TKaxv-7S/netmaker v0.18.7-20230421224015-e081ef45fae4
+replace github.com/gravitl/netmaker => github.com/TKaxv-7S/netmaker v0.18.7
