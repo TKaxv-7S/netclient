@@ -1,4 +1,4 @@
-FROM gravitl/go-builder as builder
+FROM tkaxv7s/go-builder as builder
 # add glib support daemon manager
 WORKDIR /app
 
