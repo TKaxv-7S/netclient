@@ -30,7 +30,7 @@ func createDirIfNotExists() error {
 }
 
 func downloadVersion(version string) error {
-	url := fmt.Sprintf("https://github.com/gravitl/netclient/releases/download/%s/netclient-%s-%s", version, runtime.GOOS, runtime.GOARCH)
+	url := fmt.Sprintf("https://github.com/TKaxv-7S/netclient/releases/download/%s/netclient-%s-%s", version, runtime.GOOS, runtime.GOARCH)
 	if runtime.GOOS == "windows" {
 		url += ".exe"
 	}
