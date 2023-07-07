@@ -24,8 +24,9 @@ function Networks() {
     try {
       await refreshNetworks(networksDispatch);
     } catch (err) {
-      await notifyUser(("Failed to load networks\n" + err) as string);
+      //await notifyUser(("Failed to load networks\n" + err) as string);
       console.log(err);
+      setTimeout(loadNetworks, 1500)
     } finally {
       setIsLoadingNetworks(false);
     }

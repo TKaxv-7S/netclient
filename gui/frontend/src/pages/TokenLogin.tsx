@@ -70,8 +70,13 @@ function TokenLogin() {
       // navigate(getNetworkDetailsPageUrl(networkName));
       navigate(AppRoutes.NETWORKS_ROUTE);
     } catch (err) {
-      await notifyUser(("Failed to connect to network\n" + err) as string);
+      //await notifyUser(("Failed to connect to network\n" + err) as string);
       console.error(err);
+      const data: NetworksContextDispatcherProps = {
+        action: "refresh-networks",
+      };
+      networksDispatch(data);
+      navigate(AppRoutes.NETWORKS_ROUTE);
     } finally {
       setIsConnecting(false);
     }
