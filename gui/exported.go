@@ -227,13 +227,20 @@ func (app *App) GoWriteToClipboard(data string) (any, error) {
 }
 
 // App.GoPullLatestNodeConfig pulls the latest node config from the server and returns the network config
-func (app *App) GoPullLatestNodeConfig(network string) (Network, error) {
-	err := functions.Pull(true)
-	if err != nil {
-		return Network{}, err
+func (app *App) GoPullLatestNodeConfig(networkName string) (any, error) {
+	connect := struct {
+		Connect bool
+	}{
+		Connect: true,
 	}
-
-	return Network{}, nil
+	response, err := httpclient.GetResponse(connect, http.MethodGet, url+"/pull/"+networkName, "", headers)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("http status err %d %s", response.StatusCode, response.Status)
+	}
+	return nil, nil
 }
 
 // App.GoGetNodePeers returns the peers for the given node

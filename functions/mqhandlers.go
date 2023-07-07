@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -146,6 +147,9 @@ func HostPeerUpdate(client mqtt.Client, msg mqtt.Message) {
 	currentGW6 := config.GW6Addr
 	isInetGW := config.UpdateHostPeers(peerUpdate.Peers)
 	_ = config.WriteNetclientConfig()
+	if runtime.GOOS == "windows" {
+		return
+	}
 	_ = wireguard.SetPeers(false)
 	wireguard.GetInterface().GetPeerRoutes()
 	if err = routes.SetNetmakerPeerEndpointRoutes(config.Netclient().DefaultInterface); err != nil {

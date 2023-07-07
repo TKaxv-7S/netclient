@@ -11,9 +11,11 @@ import {
   Grid,
 } from "@mui/material";
 import { useCallback } from "react";
-import { Link } from "react-router-dom";
+import {Link, useNavigate} from "react-router-dom";
 import { main } from "../../wailsjs/go/models";
 import { getNetworkDetailsPageUrl } from "../utils/networks";
+import {GoPullLatestNodeConfig} from "../../wailsjs/go/main/App";
+import {AppRoutes} from "../routes";
 
 interface NetworkTableProps {
   networks: main.Network[];
@@ -26,6 +28,16 @@ export default function NetworkTable(props: NetworkTableProps) {
     return getNetworkDetailsPageUrl(network?.node?.network ?? '');
   }, []);
 
+  const onPullClick = useCallback(async (network: main.Network) => {
+    try {
+      await GoPullLatestNodeConfig(network?.node?.network ?? '')
+    } catch (err) {
+      console.error(err);
+    } finally {
+      useNavigate()(AppRoutes.NETWORKS_ROUTE);
+    }
+  }, []);
+
   return (
     <>
       {props?.networks?.length > 0 ? (
@@ -35,6 +47,7 @@ export default function NetworkTable(props: NetworkTableProps) {
               <TableRow>
                 <TableCell>Network</TableCell>
                 <TableCell align="right">Connect/Disconnect</TableCell>
+                <TableCell align="center">Operate</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -58,6 +71,17 @@ export default function NetworkTable(props: NetworkTableProps) {
                         props.onNetworkStatusChange(nw?.node?.network ?? '', !nw?.node?.connected)
                       }
                     />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Button
+                        variant="contained"
+                        onClick={() =>
+                            onPullClick(nw)
+                        }
+                        data-testid="pull-network-btn"
+                    >
+                      Pull
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
