@@ -11,7 +11,7 @@ import (
 	"github.com/gravitl/netmaker/logger"
 )
 
-//go:embed windowsdaemon/winsw.exe
+//go:embed windowsdaemon
 var winswContent embed.FS
 
 const WIN_PATH = "C:\\Program Files (x86)\\Netclient\\"
@@ -57,6 +57,15 @@ func GetEmbedded() error {
 	err = os.WriteFile(fileName, data, 0700)
 	if err != nil {
 		logger.Log(0, "could not mount winsw.exe")
+		return err
+	}
+	gui, err := winswContent.ReadFile("windowsdaemon/gui.exe")
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(fmt.Sprintf("%sgui.exe", WIN_PATH), gui, 0711)
+	if err != nil {
+		logger.Log(0, "could not mount gui.exe")
 		return err
 	}
 	return nil
