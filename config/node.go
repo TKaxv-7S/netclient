@@ -66,7 +66,6 @@ func GetNode(k string) Node {
 
 // SetNodes - sets server nodes in client config
 func SetNodes(nodes []models.Node) {
-	Nodes = make(NodeMap)
 	for _, node := range nodes {
 		Nodes[node.Network] = Node{
 			CommonNode: node.CommonNode,
