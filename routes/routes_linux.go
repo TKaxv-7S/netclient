@@ -92,7 +92,7 @@ func SetNetmakerPeerEndpointRoutes(defaultInterface string) error {
 		return err
 	}
 
-	currentPeers := config.Netclient().HostPeers
+	currentPeers := config.GetHostPeerList()
 	for i := range currentPeers {
 		peer := currentPeers[i]
 		if peer.Endpoint == nil {

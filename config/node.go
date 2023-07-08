@@ -73,6 +73,18 @@ func SetNodes(nodes []models.Node) {
 	}
 }
 
+// GetNodesByServer returns a copy of nodes that belong to a certain server
+func GetNodesByServer(serverName string) []Node {
+	nodes := []Node{}
+	for k := range Nodes {
+		currNode := Nodes[k]
+		if currNode.Server == serverName {
+			nodes = append(nodes, currNode)
+		}
+	}
+	return nodes
+}
+
 // UpdateNodeMap updates the in memory nodemap for the specified network
 func UpdateNodeMap(k string, value Node) {
 	Nodes[k] = value

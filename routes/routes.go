@@ -80,7 +80,7 @@ func resetPeerRoutes() {
 }
 
 func ensureNotNodeAddr(gatewayIP net.IP) error {
-	currentPeers := config.Netclient().HostPeers
+	currentPeers := config.GetHostPeerList()
 	for i := range currentPeers {
 		peer := currentPeers[i]
 		for j := range peer.AllowedIPs {
@@ -92,15 +92,16 @@ func ensureNotNodeAddr(gatewayIP net.IP) error {
 			}
 		}
 	}
-
-	sNodes := config.GetNodes()
-	for i := range sNodes {
-		node := sNodes[i]
-		if node.Address.IP.Equal(gatewayIP) ||
-			node.Address6.IP.Equal(gatewayIP) {
-			return fmt.Errorf("assigned address found as gw")
+	servers := config.GetServers()
+	for _, s := range servers {
+		sNodes := config.GetNodesByServer(s)
+		for i := range sNodes {
+			node := sNodes[i]
+			if node.Address.IP.Equal(gatewayIP) ||
+				node.Address6.IP.Equal(gatewayIP) {
+				return fmt.Errorf("assigned address found as gw")
+			}
 		}
 	}
-
 	return nil
 }

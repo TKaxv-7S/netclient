@@ -110,6 +110,9 @@ func HostPeerUpdate(client mqtt.Client, msg mqtt.Message) {
 		slog.Info("skipping unwanted peer update, no nodes exist")
 		return
 	}
+	if runtime.GOOS == "windows" {
+		return
+	}
 	serverName := parseServerFromTopic(msg.Topic())
 	server := config.GetServer(serverName)
 	if server == nil {
@@ -145,11 +148,8 @@ func HostPeerUpdate(client mqtt.Client, msg mqtt.Message) {
 	gwDetected := config.GW4PeerDetected || config.GW6PeerDetected
 	currentGW4 := config.GW4Addr
 	currentGW6 := config.GW6Addr
-	isInetGW := config.UpdateHostPeers(peerUpdate.Peers)
+	isInetGW := config.UpdateHostPeers(serverName, peerUpdate.Peers)
 	_ = config.WriteNetclientConfig()
-	if runtime.GOOS == "windows" {
-		return
-	}
 	_ = wireguard.SetPeers(false)
 	wireguard.GetInterface().GetPeerRoutes()
 	if err = routes.SetNetmakerPeerEndpointRoutes(config.Netclient().DefaultInterface); err != nil {
@@ -318,7 +318,7 @@ func handleEndpointDetection(peerUpdate *models.HostPeerUpdate) {
 }
 
 func deleteHostCfg(client mqtt.Client, server string) {
-	config.DeleteServerHostPeerCfg()
+	config.DeleteServerHostPeerCfg(server)
 	nodes := config.GetNodes()
 	for k, node := range nodes {
 		node := node
@@ -328,6 +328,8 @@ func deleteHostCfg(client mqtt.Client, server string) {
 		}
 	}
 	config.DeleteServer(server)
+	// delete mq client from ServerSet map
+	delete(ServerSet, server)
 }
 
 func parseNetworkFromTopic(topic string) string {

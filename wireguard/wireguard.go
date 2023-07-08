@@ -16,7 +16,7 @@ import (
 // SetPeers - sets peers on netmaker WireGuard interface
 func SetPeers(replace bool) error {
 
-	peers := config.Netclient().HostPeers
+	peers := config.GetHostPeerList()
 	for i := range peers {
 		peer := peers[i]
 		if !peer.Remove && checkForBetterEndpoint(&peer) {

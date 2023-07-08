@@ -27,11 +27,11 @@ func Uninstall() ([]error, error) {
 			allfaults = append(allfaults, err)
 			continue
 		}
+		defer ServerSet[v.Name].Disconnect(250)
 		if err = PublishHostUpdate(v.Name, models.DeleteHost); err != nil {
 			logger.Log(0, "failed to notify server", v.Name, "of host removal")
 			allfaults = append(allfaults, err)
 		}
-		Mqclient.Disconnect(250)
 	}
 	if err := deleteAllDNS(); err != nil {
 		logger.Log(0, "failed to delete entries from /etc/hosts", err.Error())
@@ -132,15 +132,14 @@ func deleteLocalNetwork(node *config.Node) error {
 	//remove node from nodes map
 	config.DeleteNode(node.Network)
 	server := config.GetServer(node.Server)
+	//remove node from server node map
 	if server != nil {
-		//remove node from server node map
 		delete(server.Nodes, node.Network)
-		if len(server.Nodes) == 0 {
-			logger.Log(3, "removing server peers", server.Name)
-			config.DeleteServerHostPeerCfg()
-		}
 	}
-
+	if len(server.Nodes) == 0 {
+		logger.Log(3, "removing server peers", server.Name)
+		config.DeleteServerHostPeerCfg(node.Server)
+	}
 	config.WriteNetclientConfig()
 	config.WriteNodeConfig()
 	config.WriteServerConfig()

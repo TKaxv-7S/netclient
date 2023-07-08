@@ -74,7 +74,7 @@ func Register(token string) error {
 func doubleCheck(host *config.Config, apiServer string) (shouldUpdate bool, err error) {
 	var shouldUpdateHost bool
 
-	if len(config.CurrServer) == 0 { // should indicate a first join
+	if len(config.GetServers()) == 0 { // should indicate a first join
 		// do a double check of name and uuid
 		logger.Log(1, "performing first join")
 		if len(host.Name) == 0 {
@@ -121,7 +121,6 @@ func handleRegisterResponse(registerResponse *models.RegisterResponse) {
 		logger.Log(0, "failed to save server", err.Error())
 	}
 	config.UpdateHost(&registerResponse.RequestedHost)
-	config.SetCurrServerCtxInFile(server.Server)
 	if err := daemon.Restart(); err != nil {
 		logger.Log(3, "daemon restart failed:", err.Error())
 	}

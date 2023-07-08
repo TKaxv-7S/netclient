@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/gravitl/netclient/wireguard"
 	"net"
 	"sync"
 	"time"
@@ -14,7 +15,6 @@ import (
 	"github.com/gravitl/netclient/nmproxy/models"
 	peerpkg "github.com/gravitl/netclient/nmproxy/peer"
 	"github.com/gravitl/netclient/nmproxy/wg"
-	"github.com/gravitl/netclient/wireguard"
 	"github.com/gravitl/netmaker/logger"
 	nm_models "github.com/gravitl/netmaker/models"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
@@ -170,46 +170,46 @@ func WatchPeerConnections(ctx context.Context, waitg *sync.WaitGroup) {
 				logger.Log(1, "failed to get iface: ", err.Error())
 				continue
 			}
-			peers := ncconfig.Netclient().HostPeers
-			for _, peer := range peers {
-
-				if peer.Endpoint == nil || peer.Remove {
-					continue
-				}
-				connected, err := isPeerConnected(peer.PublicKey.String())
-				if err != nil {
-					logger.Log(0, "failed to check if peer is connected: ", err.Error())
-					continue
-				}
-				if connected {
-					// peer is connected,so continue
-					continue
-				}
-				// signal peer to use turn
-				turnCfg, ok := config.GetCfg().GetTurnCfg(ncconfig.CurrServer)
-				if !ok || turnCfg.TurnConn == nil {
-					continue
-				}
-				if _, ok := config.GetCfg().GetPeerTurnCfg(ncconfig.CurrServer, peer.PublicKey.String()); !ok {
-					config.GetCfg().SetPeerTurnCfg(ncconfig.CurrServer, peer.PublicKey.String(), models.TurnPeerCfg{
-						Server:   ncconfig.CurrServer,
-						PeerConf: nm_models.PeerConf{},
+			serverPeers := ncconfig.Netclient().HostPeers
+			for server, peers := range serverPeers {
+				for _, peerI := range peers {
+					if peerI.Endpoint == nil || peerI.Remove {
+						continue
+					}
+					connected, err := isPeerConnected(peerI.PublicKey.String())
+					if err != nil {
+						logger.Log(0, "failed to check if peer is connected: ", err.Error())
+						continue
+					}
+					if connected {
+						// peer is connected,so continue
+						continue
+					}
+					// signal peer to use turn
+					turnCfg, ok := config.GetCfg().GetTurnCfg(server)
+					if !ok || turnCfg.TurnConn == nil {
+						continue
+					}
+					if _, ok := config.GetCfg().GetPeerTurnCfg(server, peerI.PublicKey.String()); !ok {
+						config.GetCfg().SetPeerTurnCfg(server, peerI.PublicKey.String(), models.TurnPeerCfg{
+							Server:   server,
+							PeerConf: nm_models.PeerConf{},
+						})
+					}
+					turnCfg.Mutex.RLock()
+					// signal peer with the host relay addr for the peer
+					err = SignalPeer(server, nm_models.Signal{
+						Server:            server,
+						FromHostPubKey:    iface.Device.PublicKey.String(),
+						TurnRelayEndpoint: turnCfg.TurnConn.LocalAddr().String(),
+						ToHostPubKey:      peerI.PublicKey.String(),
+						Action:            nm_models.ConnNegotiation,
 					})
+					turnCfg.Mutex.RUnlock()
+					if err != nil {
+						logger.Log(2, "failed to signal peer: ", err.Error())
+					}
 				}
-				turnCfg.Mutex.RLock()
-				// signal peer with the host relay addr for the peer
-				err = SignalPeer(ncconfig.CurrServer, nm_models.Signal{
-					Server:            ncconfig.CurrServer,
-					FromHostPubKey:    iface.Device.PublicKey.String(),
-					TurnRelayEndpoint: turnCfg.TurnConn.LocalAddr().String(),
-					ToHostPubKey:      peer.PublicKey.String(),
-					Action:            nm_models.ConnNegotiation,
-				})
-				turnCfg.Mutex.RUnlock()
-				if err != nil {
-					logger.Log(2, "failed to signal peer: ", err.Error())
-				}
-
 			}
 		}
 	}
@@ -243,17 +243,18 @@ func DissolvePeerConnections() {
 	if port == 0 {
 		port = ncconfig.Netclient().ListenPort
 	}
-	turnPeers := config.GetCfg().GetAllTurnPeersCfg(ncconfig.CurrServer)
-	for peerPubKey := range turnPeers {
-		err := SignalPeer(ncconfig.CurrServer, nm_models.Signal{
-			FromHostPubKey:    ncconfig.Netclient().PublicKey.String(),
-			ToHostPubKey:      peerPubKey,
-			TurnRelayEndpoint: fmt.Sprintf("%s:%d", ncconfig.Netclient().EndpointIP.String(), port),
-			Action:            nm_models.Disconnect,
-		})
-		if err != nil {
-			logger.Log(0, "failed to signal peer: ", peerPubKey, err.Error())
+	for _, server := range ncconfig.GetServers() {
+		turnPeers := config.GetCfg().GetAllTurnPeersCfg(server)
+		for peerPubKey := range turnPeers {
+			err := SignalPeer(server, nm_models.Signal{
+				FromHostPubKey:    ncconfig.Netclient().PublicKey.String(),
+				ToHostPubKey:      peerPubKey,
+				TurnRelayEndpoint: fmt.Sprintf("%s:%d", ncconfig.Netclient().EndpointIP.String(), port),
+				Action:            nm_models.Disconnect,
+			})
+			if err != nil {
+				logger.Log(0, "failed to signal peer: ", peerPubKey, err.Error())
+			}
 		}
 	}
-
 }

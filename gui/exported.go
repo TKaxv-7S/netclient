@@ -226,6 +226,15 @@ func (app *App) GoWriteToClipboard(data string) (any, error) {
 	return nil, nil
 }
 
+//TODO backup
+/*func (app *App) GoPullLatestNodeConfig(network string) (Network, error) {
+	err := functions.Pull(true)
+	if err != nil {
+		return Network{}, err
+	}
+
+	return Network{}, nil
+}*/
 // App.GoPullLatestNodeConfig pulls the latest node config from the server and returns the network config
 func (app *App) GoPullLatestNodeConfig(networkName string) (any, error) {
 	connect := struct {

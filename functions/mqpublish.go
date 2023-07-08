@@ -48,13 +48,14 @@ func Checkin(ctx context.Context, wg *sync.WaitGroup) {
 			logger.Log(0, "checkin routine closed")
 			return
 		case <-ticker.C:
-
-			if Mqclient == nil || !Mqclient.IsConnected() {
-				logger.Log(0, "MQ client is not connected, skipping checkin for server", config.CurrServer)
-				continue
+			for server, mqclient := range ServerSet {
+				mqclient := mqclient
+				if mqclient == nil || !mqclient.IsConnected() {
+					logger.Log(0, "MQ client is not connected, skipping checkin for server", server)
+					continue
+				}
 			}
-
-			if config.CurrServer != "" {
+			if len(config.GetServers()) > 0 {
 				checkin()
 			}
 		}
@@ -67,7 +68,7 @@ func checkin() {
 		logger.Log(0, "failed to update host settings", err.Error())
 		return
 	}
-	if err := PublishHostUpdate(config.CurrServer, models.HostMqAction(models.CheckIn)); err != nil {
+	if err := PublishGlobalHostUpdate(models.HostMqAction(models.CheckIn)); err != nil {
 		logger.Log(0, "error publishing checkin", err.Error())
 		return
 	}
@@ -88,6 +89,27 @@ func PublishNodeUpdate(node *config.Node) error {
 	}
 
 	logger.Log(0, "network:", node.Network, "sent a node update to server for node", config.Netclient().Name, ", ", node.ID.String())
+	return nil
+}
+
+// PublishGlobalHostUpdate - publishes host updates to all the servers host is registered.
+func PublishGlobalHostUpdate(hostAction models.HostMqAction) error {
+	servers := config.GetServers()
+	hostCfg := config.Netclient()
+	hostUpdate := models.HostUpdate{
+		Action: hostAction,
+		Host:   hostCfg.Host,
+	}
+	data, err := json.Marshal(hostUpdate)
+	if err != nil {
+		return err
+	}
+	for _, server := range servers {
+		if err = publish(server, fmt.Sprintf("host/serverupdate/%s/%s", server, hostCfg.ID.String()), data, 1); err != nil {
+			logger.Log(1, "failed to publish host update to: ", server, err.Error())
+			continue
+		}
+	}
 	return nil
 }
 
@@ -200,7 +222,11 @@ func publish(serverName, dest string, msg []byte, qos byte) error {
 	if err != nil {
 		return err
 	}
-	if token := Mqclient.Publish(dest, qos, false, encrypted); !token.WaitTimeout(30*time.Second) || token.Error() != nil {
+	mqclient, ok := ServerSet[serverName]
+	if !ok {
+		return errors.New("unable to publish ... no mqclient")
+	}
+	if token := mqclient.Publish(dest, qos, false, encrypted); !token.WaitTimeout(30*time.Second) || token.Error() != nil {
 		logger.Log(0, "could not connect to broker at "+serverName)
 		var err error
 		if token.Error() == nil {
@@ -225,37 +251,35 @@ func UpdateHostSettings() error {
 		publishMsg    bool
 		restartDaemon bool
 	)
-
-	server := config.GetServer(config.CurrServer)
-	if server == nil {
-		return errors.New("server config is nil")
-	}
-	if !config.Netclient().IsStatic {
-		if config.Netclient().EndpointIP == nil {
-			config.Netclient().EndpointIP = config.HostPublicIP
-		} else {
-			if config.HostPublicIP != nil && !config.HostPublicIP.IsUnspecified() && !config.Netclient().EndpointIP.Equal(config.HostPublicIP) {
-				logger.Log(0, "endpoint has changed from", config.Netclient().EndpointIP.String(), "to", config.HostPublicIP.String())
+	for _, serverName := range config.GetServers() {
+		server := config.GetServer(serverName)
+		if !config.Netclient().IsStatic {
+			if config.Netclient().EndpointIP == nil {
 				config.Netclient().EndpointIP = config.HostPublicIP
-				publishMsg = true
+			} else {
+				if config.HostPublicIP != nil && !config.HostPublicIP.IsUnspecified() && !config.Netclient().EndpointIP.Equal(config.HostPublicIP) {
+					logger.Log(0, "endpoint has changed from", config.Netclient().EndpointIP.String(), "to", config.HostPublicIP.String())
+					config.Netclient().EndpointIP = config.HostPublicIP
+					publishMsg = true
+				}
 			}
 		}
-	}
-	if config.WgPublicListenPort != 0 && config.Netclient().WgPublicListenPort != config.WgPublicListenPort {
-		config.Netclient().WgPublicListenPort = config.WgPublicListenPort
-		publishMsg = true
-	}
-	if len(config.Netclient().Host.NatType) == 0 || config.Netclient().Host.NatType != hostNatInfo.NatType {
-		config.Netclient().Host.NatType = hostNatInfo.NatType
-		publishMsg = true
-	}
-	if server.Is_EE {
-		serverNodes := config.GetNodes()
-		for _, node := range serverNodes {
-			node := node
-			if node.Connected {
-				logger.Log(0, "collecting metrics for network", node.Network)
-				publishMetrics(&node)
+		if config.WgPublicListenPort != 0 && config.Netclient().WgPublicListenPort != config.WgPublicListenPort {
+			config.Netclient().WgPublicListenPort = config.WgPublicListenPort
+			publishMsg = true
+		}
+		if len(config.Netclient().Host.NatType) == 0 || config.Netclient().Host.NatType != hostNatInfo.NatType {
+			config.Netclient().Host.NatType = hostNatInfo.NatType
+			publishMsg = true
+		}
+		if server.Is_EE {
+			serverNodes := config.GetNodesByServer(serverName)
+			for _, node := range serverNodes {
+				node := node
+				if node.Connected {
+					logger.Log(0, "collecting metrics for network", node.Network)
+					publishMetrics(&node)
+				}
 			}
 		}
 	}
@@ -271,7 +295,6 @@ func UpdateHostSettings() error {
 	if proxypublicport == 0 {
 		proxypublicport = models.NmProxyPort
 	}
-
 	localPort, err := GetLocalListenPort(ifacename)
 	if err != nil {
 		logger.Log(1, "error encountered checking local listen port: ", ifacename, err.Error())
@@ -325,7 +348,7 @@ func UpdateHostSettings() error {
 			return err
 		}
 		logger.Log(0, "publishing global host update for endpoint changes")
-		if err := PublishHostUpdate(config.CurrServer, models.UpdateHost); err != nil {
+		if err := PublishGlobalHostUpdate(models.UpdateHost); err != nil {
 			logger.Log(0, "could not publish endpoint change", err.Error())
 		}
 	}

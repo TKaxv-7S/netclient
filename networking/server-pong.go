@@ -127,7 +127,7 @@ func storeNewPeerIface(clientPubKeyHash string, endpoint netip.Addr, latency tim
 
 func setPeerEndpoint(publicKeyHash string, value cache.EndpointCacheValue) error {
 
-	currentServerPeers := config.Netclient().HostPeers
+	currentServerPeers := config.GetHostPeerList()
 	for i := range currentServerPeers {
 		currPeer := currentServerPeers[i]
 		peerPubkeyHash := fmt.Sprintf("%v", sha1.Sum([]byte(currPeer.PublicKey.String())))
