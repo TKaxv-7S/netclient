@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . . 
 
-RUN export GOPRIVATE=github.com/TKaxv-7S && apk add git && go mod tidy
+RUN go env -w GOPRIVATE=github.com/TKaxv-7S && go mod tidy
 RUN GOOS=linux CGO_ENABLED=0 /usr/local/go/bin/go build -ldflags="-s -w" -o netclient-app .
 
 FROM alpine:3.18.2
